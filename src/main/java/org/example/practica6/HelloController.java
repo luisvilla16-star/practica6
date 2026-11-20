@@ -1,4 +1,3 @@
-
 package org.example.practica6;
 
 import javafx.collections.FXCollections;
@@ -90,7 +89,7 @@ public class HelloController {
             List<TableColumn<String[], String>> listaColumnas =
                     new ArrayList<>();
 
-            // Crear columnas
+            // Crear columnas (el encabezado se pone después de leer los datos)
             for (int i = 0; i < columnas.length; i++) {
 
                 final int posicion = i;
@@ -123,9 +122,8 @@ public class HelloController {
             archivo.close();
             lector.close();
 
-            // Encabezados
+            // Encabezado con histograma estilo Kaggle
             for (int i = 0; i < columnas.length; i++) {
-
                 listaColumnas.get(i)
                         .setGraphic(crearHistograma(columnas[i], i));
             }
@@ -136,7 +134,9 @@ public class HelloController {
         }
     }
 
-    // Números abreviados
+    // ------------------------------------------------------------------
+    //  Números abreviados como Kaggle: 29.7k, 3.08m, 241
+    // ------------------------------------------------------------------
     private String compacto(double v) {
 
         double a = Math.abs(v);
@@ -152,7 +152,9 @@ public class HelloController {
         return new DecimalFormat("#.##").format(v);
     }
 
-    // Gráfica de pastel para booleanos
+    // ------------------------------------------------------------------
+    //  Pastel pequeño para columnas booleanas: true / false / [null]
+    // ------------------------------------------------------------------
     private HBox crearPastel(int posicion) {
 
         double verdaderos = 0, falsos = 0, nulos = 0;
@@ -174,7 +176,6 @@ public class HelloController {
 
         String[] nombres = {"true", "false", "[null]"};
         double[] valores = {verdaderos, falsos, nulos};
-
         Color[] colores = {
                 Color.web("#4C94FF"),
                 Color.web("#1F7BFF"),
@@ -189,7 +190,7 @@ public class HelloController {
 
         VBox leyenda = new VBox(4);
 
-        double inicio = 90;
+        double inicio = 90; // empieza arriba y avanza en sentido horario
 
         for (int i = 0; i < valores.length; i++) {
 
@@ -204,7 +205,6 @@ public class HelloController {
 
                 Tooltip tip = new Tooltip(nombres[i] + "\nCount: "
                         + String.format("%,d", (long) valores[i]));
-
                 tip.setShowDelay(Duration.ZERO);
                 Tooltip.install(arco, tip);
 
@@ -216,8 +216,7 @@ public class HelloController {
             Label nombreLabel = new Label(nombres[i]);
             nombreLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13;");
 
-            long porcentaje = total == 0 ? 0 :
-                    Math.round(valores[i] / total * 100);
+            long porcentaje = total == 0 ? 0 : Math.round(valores[i] / total * 100);
 
             Label datoLabel = new Label(
                     compacto(valores[i]) + "  " + porcentaje + "%");
@@ -231,12 +230,13 @@ public class HelloController {
         return caja;
     }
 
-    // Histograma y valores únicos
+    // ------------------------------------------------------------------
+    //  Histograma pequeño para el encabezado de cada columna (como Kaggle)
+    // ------------------------------------------------------------------
     private VBox crearHistograma(String nombre, int posicion) {
 
         final double ANCHO = 190;
         final double ALTO = 90;
-
         DecimalFormat formato = new DecimalFormat("#.##");
 
         Label titulo = new Label("# " + nombre);
@@ -251,7 +251,6 @@ public class HelloController {
 
         String tipoDato = (esEntero || esDecimal) ? "double"
                 : esBooleano ? "boolean" : "string";
-
         Label tipo = new Label(tipoDato);
         tipo.setStyle("-fx-text-fill: #555;");
 
@@ -264,15 +263,14 @@ public class HelloController {
 
         if (esEntero || esDecimal) {
 
-            // Leer valores numéricos
+            // ---- leer valores numéricos desde la tabla ----
             List<Double> valores = new ArrayList<>();
 
             for (String[] fila : tabla.getItems()) {
-
                 try {
                     valores.add(Double.parseDouble(fila[posicion].trim()));
                 } catch (Exception e) {
-                    // Ignorar valores vacíos
+                    // celda vacía o inválida: se ignora
                 }
             }
 
@@ -285,24 +283,20 @@ public class HelloController {
             double max = -Double.MAX_VALUE;
 
             for (double v : valores) {
-
                 if (v < min) min = v;
                 if (v > max) max = v;
             }
 
+            // enteros con pocos valores (key, mode...) -> una barra por valor
             int cubetas;
             double ancho;
 
             if (esEntero && (max - min) <= 20) {
-
                 cubetas = (int) (max - min) + 1;
                 ancho = 1;
-
             } else {
-
                 cubetas = 20;
                 ancho = (max - min) / cubetas;
-
                 if (ancho == 0) ancho = 1;
             }
 
@@ -310,22 +304,15 @@ public class HelloController {
             rangos = new String[cubetas];
 
             for (double v : valores) {
-
                 int idx = (int) ((v - min) / ancho);
-
                 if (idx >= cubetas) idx = cubetas - 1;
-
                 cuentas[idx]++;
             }
 
             for (int i = 0; i < cubetas; i++) {
-
                 if (esEntero && ancho == 1) {
-
                     rangos[i] = formato.format(min + i);
-
                 } else {
-
                     rangos[i] = formato.format(min + i * ancho) + " - "
                             + formato.format(min + (i + 1) * ancho);
                 }
@@ -336,42 +323,19 @@ public class HelloController {
 
         } else if (esBooleano) {
 
-            // Conservar gráfica de pastel
+            // pastel con true / false / [null], como Kaggle
             caja.getChildren().addAll(crearPastel(posicion), tiempos);
             return caja;
 
         } else {
 
-            // Mostrar solamente la cantidad de valores únicos
-            List<String> valoresUnicos = new ArrayList<>();
-
-            for (String[] fila : tabla.getItems()) {
-
-                String valor = fila[posicion];
-
-                if (valor == null || valor.trim().isEmpty()) {
-                    valor = "[null]";
-                } else {
-                    valor = valor.trim();
-                }
-
-                if (!valoresUnicos.contains(valor)) {
-                    valoresUnicos.add(valor);
-                }
-            }
-
-            Label cantidad = new Label(
-                    "Unique values: " + valoresUnicos.size()
-            );
-
-            caja.getChildren().addAll(cantidad, tiempos);
-
+            // columnas de texto: solo nombre y botón
+            caja.getChildren().add(tiempos);
             return caja;
         }
 
-        // Dibujar las barras
+        // ---- dibujar las barras ----
         double maxCuenta = 0;
-
         for (double c : cuentas) {
             if (c > maxCuenta) maxCuenta = c;
         }
@@ -382,23 +346,18 @@ public class HelloController {
         barras.setMinHeight(ALTO);
 
         double anchoBarra = ANCHO / cuentas.length;
-
         Color azul = Color.web("#4C94FF");
         Color azulOscuro = Color.web("#2F6FD6");
 
         for (int i = 0; i < cuentas.length; i++) {
 
-            double alto = maxCuenta == 0 ? 0 :
-                    (cuentas[i] / maxCuenta) * ALTO;
+            double alto = maxCuenta == 0 ? 0 : (cuentas[i] / maxCuenta) * ALTO;
 
-            Rectangle barra = new Rectangle(
-                    anchoBarra, Math.max(alto, 1));
-
+            Rectangle barra = new Rectangle(anchoBarra, Math.max(alto, 1));
             barra.setFill(azul);
 
             Tooltip tip = new Tooltip(rangos[i] + "\nCount: "
                     + String.format("%,d", (long) cuentas[i]));
-
             tip.setShowDelay(Duration.ZERO);
             Tooltip.install(barra, tip);
 
@@ -409,10 +368,8 @@ public class HelloController {
         }
 
         BorderPane etiquetas = new BorderPane();
-
         etiquetas.setLeft(new Label(textoMin));
         etiquetas.setRight(new Label(textoMax));
-
         etiquetas.setPrefWidth(ANCHO);
         etiquetas.setMaxWidth(ANCHO);
 
@@ -421,7 +378,9 @@ public class HelloController {
         return caja;
     }
 
-    // Gráfica de tiempos de ordenamiento
+    // ------------------------------------------------------------------
+    //  Gráfica de tiempos de ordenamiento (la de la práctica)
+    // ------------------------------------------------------------------
     private void mostrarGrafica(String columna) {
 
         try {
@@ -495,22 +454,22 @@ public class HelloController {
         grafica.setData(FXCollections.observableArrayList(
 
                 new PieChart.Data("Selección: " + t1 + " ms",
-                        Math.max(0, t1)),
+                        t1),
 
                 new PieChart.Data("Shell: " + t2 + " ms",
-                        Math.max(0, t2)),
+                        t2),
 
                 new PieChart.Data("Quicksort: " + t3 + " ms",
-                        Math.max(0, t3)),
+                        t3 < 0 ? 0 : t3),
 
                 new PieChart.Data("MergeSort: " + t4 + " ms",
-                        Math.max(0, t4)),
+                        t4),
 
                 new PieChart.Data("Arrays.sort(): " + t5 + " ms",
-                        Math.max(0, t5)),
+                        t5),
 
                 new PieChart.Data("ParallelSort: " + t6 + " ms",
-                        Math.max(0, t6))
+                        t6)
         ));
 
         Stage ventana = new Stage();
