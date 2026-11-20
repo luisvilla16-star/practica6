@@ -361,7 +361,7 @@ public class HelloController {
             }
 
             Label cantidad = new Label(
-                    "Unique values: " + valoresUnicos.size()
+                    "valore unicos: " + valoresUnicos.size()
             );
 
             caja.getChildren().addAll(cantidad, tiempos);
